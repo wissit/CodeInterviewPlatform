@@ -59,11 +59,13 @@ app.get('/health', (req: Request, res: Response) => {
 import authRoutes from './routes/auth.routes';
 import profileRoutes from './routes/profile.routes';
 import sessionRoutes from './routes/session.routes';
+import executionRoutes from './routes/execution.routes';
 
 // API Routes
 app.use('/v1/auth', authRoutes);
 app.use('/v1/profiles', profileRoutes);
 app.use('/v1/sessions', sessionRoutes);
+app.use('/v1/execute', executionRoutes);
 
 app.get('/v1', (req: Request, res: Response) => {
     res.json({
