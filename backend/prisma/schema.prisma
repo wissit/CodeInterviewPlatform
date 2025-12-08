@@ -1,0 +1,147 @@
+// Prisma schema for Code Interview Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(CANDIDATE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  hostedSessions Session[]    @relation("HostedSessions")
+  participants   Participant[]
+  scorecards     Scorecard[]
+  candidateProfile CandidateProfile?
+}
+
+model Session {
+  id          String        @id @default(uuid())
+  hostId      String
+  title       String        @default("Untitled Session")
+  language    String
+  template    String?
+  code        String        @default("")
+  currentCode String        @default("")
+  status      SessionStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  host          User          @relation("HostedSessions", fields: [hostId], references: [id])
+  participants  Participant[]
+  chatMessages  ChatMessage[]
+  executions    Execution[]
+  scorecard     Scorecard?
+  playbackData  PlaybackData?
+
+  @@index([hostId])
+  @@index([status])
+}
+
+model Participant {
+  id        String   @id @default(uuid())
+  sessionId String
+  userId    String
+  name      String
+  role      ParticipantRole @default(GUEST)
+  joinedAt  DateTime @default(now())
+
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String
+  senderId  String
+  content   String
+  timestamp DateTime @default(now())
+
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model Execution {
+  id            String   @id @default(uuid())
+  sessionId     String
+  language      String
+  code          String
+  stdin         String?
+  stdout        String?
+  stderr        String?
+  exitCode      Int?
+  executionTime Float?
+  createdAt     DateTime @default(now())
+
+  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model Scorecard {
+  id                     String   @id @default(uuid())
+  sessionId              String   @unique
+  interviewerId          String
+  communicationRating    Int
+  problemSolvingRating   Int
+  codeQualityRating      Int
+  notes                  String?
+  submittedAt            DateTime @default(now())
+
+  session                Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  interviewer            User     @relation(fields: [interviewerId], references: [id])
+
+  @@index([interviewerId])
+}
+
+model CandidateProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PlaybackData {
+  id        String   @id @default(uuid())
+  sessionId String   @unique
+  events    Json     // Store Yjs deltas or keystroke events
+  duration  Int      // ms
+  createdAt DateTime @default(now())
+
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+// Enums
+enum Role {
+  INTERVIEWER
+  CANDIDATE
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum ParticipantRole {
+  HOST
+  GUEST
+}
