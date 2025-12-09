@@ -96,6 +96,26 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         };
     }, [sessionId, isEditorReady]);
 
+    // Update language when prop changes
+    useEffect(() => {
+        if (editorRef.current) {
+            const model = editorRef.current.getModel();
+            if (model) {
+                console.log(`Switching editor language to: ${language}`);
+                // Ensure monaco is available (it should be since editorRef is set)
+                // We access the global 'monaco' via window or import if needed, but the editor instance allows accessing the model.
+                // Actually, correct way via instance is usually just setting it on model.
+                // But we need the monaco instance to call setModelLanguage.
+                // We can get it from the editor instance if we didn't save it.
+                // OR we can rely on the Editor component to do it, but Yjs might be interfering.
+                const monaco = (window as any).monaco;
+                if (monaco) {
+                    monaco.editor.setModelLanguage(model, language);
+                }
+            }
+        }
+    }, [language, isEditorReady]);
+
     const handleEditorDidMount = (editor: Monaco.editor.IStandaloneCodeEditor) => {
         console.log('Monaco Editor mounted successfully');
         editorRef.current = editor;
